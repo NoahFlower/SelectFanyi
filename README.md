@@ -8,7 +8,7 @@
 - 划词选中内容即可翻译，无需按键；
 - 译文直接显示在选中内容下方，方便双语对照；
 
-![viedo](./video.gif)
+![img](https://github.com/NoahFlower/SelectFanyi/blob/main/video.gif?raw=true)
 
 在任意浏览页面，使用鼠标滑动选中页面文本，松开鼠标后，译文便会直接显示在选中内容下方（英译中），简单快捷。
 
