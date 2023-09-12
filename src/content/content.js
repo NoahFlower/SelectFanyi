@@ -34,7 +34,7 @@ var JsonpScript = null;
 
 
 // 从插件的本地存储获取StFanyiDisable属性
-chrome.storage.local.get(['StFanyiDisable'], res => StFanyiDisable = res ?? false);
+chrome.storage.local.get(['StFanyiDisable'], res => StFanyiDisable = res.StFanyiDisable ?? false);
 chrome.storage.onChanged.addListener(changes => {
     if (changes.StFanyiDisable) StFanyiDisable = changes.StFanyiDisable.newValue;
 });
@@ -110,11 +110,7 @@ function TipInfo(text, forecolor) {
     InfoForm.style.top = top + 'px';
 
     TimeoutResult && clearTimeout(TimeoutResult);
-    TimeoutResult = setTimeout(() => {
-        StFanyiLocked = false;
-        TimeoutResult = null;
-        HideInfo();
-    }, 3000);
+    TimeoutResult = setTimeout(HideInfo, 3000);
 }
 
 // 显示信息框
@@ -139,6 +135,8 @@ function HideInfo() {
     if (StFanyiLocked) return;
     InfoForm.style.opacity = '0';
     InfoForm.style.pointerEvents = 'none';
+    TimeoutResult && clearTimeout(TimeoutResult);
+    TimeoutResult = null;
 }
 
 // 翻译结果的回调函数
@@ -167,6 +165,10 @@ function Keydown(event) {
             alert('请等待翻译完毕，或是刷新页面');
             return;
         }
+
+        // 夺下 Shift + E 的控制权
+        event.stopPropagation();
+        event.preventDefault();
 
         StFanyiDisable = !StFanyiDisable;
         if (StFanyiDisable)
