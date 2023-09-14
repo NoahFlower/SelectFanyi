@@ -13,12 +13,12 @@ InfoForm.style.opacity = '0';
 InfoForm.style.position = 'fixed';
 InfoForm.style.maxWidth = '30em';
 InfoForm.style.padding = '10px';
+InfoForm.style.zIndex = '100000000';
 InfoForm.style.borderRadius = '5px';
 InfoForm.style.transition = 'opacity 0.25s';
 InfoForm.style.boxShadow = '0 0 15px #222, 0 0 10px #000';
 InfoForm.style.backgroundColor = 'rgba(15, 15, 15, 0.75)';
 InfoForm.style.backdropFilter = 'blur(2px)';
-InfoForm.style.zIndex = '100000';
 document.body.appendChild(InfoForm);
 
 // 注入回调函数脚本
@@ -31,6 +31,7 @@ var StFanyiDisable = false;
 var StFanyiLocked = false;
 var TimeoutResult = null;
 var JsonpScript = null;
+var SelectedText = '';
 
 
 // 从插件的本地存储获取StFanyiDisable属性
@@ -94,6 +95,7 @@ function ClearSelection() {
     if (ActivedInput()) return;
     window.getSelection().
         removeAllRanges();
+    SelectedText = '';
 }
 
 // 提示信息框
@@ -111,20 +113,24 @@ function TipInfo(text, forecolor) {
 
     TimeoutResult && clearTimeout(TimeoutResult);
     TimeoutResult = setTimeout(HideInfo, 3000);
+    SelectedText = '';
 }
 
 // 显示信息框
-function ShowInfo(text, forecolor, pos = undefined) {
+function ShowInfo(text, forecolor = undefined, pos = undefined) {
 
     if (StFanyiLocked) return;
     if (StFanyiDisable) return;
 
-    InfoForm.innerText = text;
     InfoForm.style.opacity = '1';
     InfoForm.style.fontSize = '16px';
-    InfoForm.style.color = forecolor;
     InfoForm.style.pointerEvents = 'auto';
-    if (pos) {
+
+    if (text)
+        InfoForm.innerText = text;
+    if (forecolor)
+        InfoForm.style.color = forecolor;
+    if (pos && pos.x && pos.y) {
         InfoForm.style.left = `${pos.x}px`;
         InfoForm.style.top = `${pos.y}px`;
     }
@@ -188,9 +194,9 @@ function MouseUp(event) {
 
     // 获取用户在浏览器中选中的范围以及选中的文本（文本移除空白字符）
     var selected = window.getSelection();
-    var selectedText = RemoveWhiteSpace(selected.toString());
+    SelectedText = RemoveWhiteSpace(selected.toString());
     // 若用户并未选择任何内容，不进行翻译且隐藏提示框
-    if (selectedText === '') {
+    if (SelectedText === '') {
         HideInfo();
         return;
     }
@@ -210,27 +216,27 @@ function MouseUp(event) {
         rect.left < 0 ||
         rect.right > window.innerWidth ||
         rect.bottom > window.innerHeight) {
-        TipInfo('超出可视范围', FORECOLOR.Warning);
+        TipInfo('超出可视范围', FORECOLOR.Warning); 
         return;
     }
 
     // 若文本太长，不进行翻译
-    if (selectedText.length >= 2000) {
-        TipInfo('选中文本过长', FORECOLOR.Warning);
+    if (SelectedText.length >= 2000) {
+        TipInfo('选中文本过长', FORECOLOR.Warning); 
         return;
     }
 
     // 若包含较多中文字符，或文本太短，则不进行翻译
-    if (selectedText.length <= 3 ||
-        ContainsChinese(selectedText)) {
-        ShowInfo(`${selectedText} (原文)`, FORECOLOR.Default, pos);
+    if (SelectedText.length <= 3 ||
+        ContainsChinese(SelectedText)) {
+        ShowInfo(`${SelectedText} (原文)`, FORECOLOR.Default, pos);
         return;
     }
 
     ShowInfo('正在翻译...', FORECOLOR.Waiting, pos);
     StFanyiLocked = true;
 
-    var url = GetBdApiUrl(selectedText) + '&callback=StFanyi';
+    var url = GetBdApiUrl(SelectedText) + '&callback=StFanyi';
     JsonpScript = document.createElement('script');
     JsonpScript.src = url;
     document.head.appendChild(JsonpScript);
@@ -248,3 +254,19 @@ document.addEventListener('mousedown', MouseDown);
 document.addEventListener('mouseup', MouseUp);
 document.addEventListener('keydown', Keydown);
 document.addEventListener('StFanyi', StFanyi);
+document.onscroll = () => {
+    // 当页面发生滚动时：
+
+    if (SelectedText === '') return;
+    var selected = window.getSelection();
+    if (document.getSelection().baseNode.parentElement === InfoForm) return;
+    var range = selected.getRangeAt(0);
+    var rect = range.getBoundingClientRect();
+
+    // 信息框显示位置
+    var pos = {
+        x: rect.left,
+        y: rect.bottom + 10
+    };
+    ShowInfo(undefined, undefined, pos);
+}
